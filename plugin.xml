@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
+    xmlns="http://www.phonegap.com/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="com.applicationcraft.plugins.PGSQLitePlugin"
+    version="1.0.0">
+
+    <name>PGSQLite</name>
+    
+    <asset src="www/pgsqliteplugin.js" target="pgsqliteplugin.js" />
+    
+    <!-- android -->
+    <platform name="android">
+        <config-file target="res/xml/plugins.xml" parent="/plugins">
+            <plugin name="PGSQLitePlugin"
+                value="com.applicationcraft.plugins.PGSQLitePlugin"/>
+        </config-file>
+
+        <source-file src="src/android/PGSQLitePlugin.java"
+                target-dir="src/com/applicationcraft/plugins" />
+    </platform>
+    
+    
+    <!-- ios -->
+    <platform name="ios">
+        <plugins-plist key="PGSQLitePlugin"
+                    string="PGSQLitePlugin" />
+        <source-file src="PGSQLitePlugin.h" />
+        <source-file src="PGSQLitePlugin.m" />
+    </platform>
+</plugin>
