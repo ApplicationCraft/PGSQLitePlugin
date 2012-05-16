@@ -29,13 +29,18 @@ to native XML manifests (AndroidManifest.xml, App-Info.plist, config.xml (BB)).
 ## PGSQLitePlugin JavaScript API
 
 As with most Cordova/PhoneGap APIs, functionality is not available until the
-`deviceready` event has fired on the document. The `childbrowser.js` file
+`deviceready` event has fired on the document. The `pgsqliteplugin.js` file
 should be included _after_ the `phonegap.js` file.
 
-All functions are called on the created PGSQLitePlugin object: var db = new PGSQLitePlugin(name, successOpenDatabaseFunction, errorOpenDatabaseFunction)
+All functions are called on the created PGSQLitePlugin object: 
+
+	var db = new PGSQLitePlugin(name, successOpenDatabaseFunction, errorOpenDatabaseFunction)
+
 
 	name - database name
-	successOpenDatabaseFunction success callback function, return object: obj.version - database version, obj.status - number, 0 - database opened, 1 - database created, 2 - database created from resources
+	successOpenDatabaseFunction - success callback function, return object: 
+		obj.version - database version, 
+		obj.status - number, 0 - database opened, 1 - database created, 2 - database created from resources
 	errorOpenDatabaseFunction - error callback function
 
 ### Methods
@@ -67,7 +72,7 @@ Remove database function
 #### executeSql
 	db.executeSql(sql, success, error)
 
-Runs the provided SQL. If it is SELECT statment - return object res = { rows : [ {key: value}, {key: value1}, {key: value1} ] }, where key is field name
+Runs the provided SQL. If it is SELECT statment - return object `res = { rows : [ {key: value}, {key: value1}, {key: value1} ] }, where key is field name`
 
 	sql - sql query
 	success - success callback function
@@ -149,7 +154,7 @@ Query the given table
 	where - the optional WHERE clause to apply when updating. Passing null will update all rows.
 	whereArgs - You may include ?s in where, which will be replaced by the values from whereArgs, in order that they appear in the where. The values will be bound as Strings.
 	groupBy - A filter declaring how to group rows, formatted as an SQL GROUP BY clause (excluding the GROUP BY it__self__). Passing null will cause the rows to not be grouped.
-	having - A filter declare which row groups to include in the cursor, if row grouping is being used, formatted as an SQL HAVING clause (excluding the HAVING it__self__). Passing null will cause all row groups to be included, and is required when row grouping is not being used
+	having - A filter declare which row groups to include in the cursor, if row grouping is being used, formatted as an SQL HAVING clause (excluding the HAVING it__self__).
 	orderBy - How to order the rows, formatted as an SQL ORDER BY clause (excluding the ORDER BY it__self__). Passing null will use the default sort order, which may be unordered
 	limit - Limits the number of rows returned by the query, formatted as LIMIT clause. Passing null denotes no LIMIT clause
 	success - success callback function - first paramert return object res = { rows : [ {key: value}, {key: value1}, {key: value1} ] }, where key is field name
