@@ -167,7 +167,7 @@ Example:
 		console.log("error="+er);
 	});
 
-#### query
+#### transaction
 	transaction(fn, success, error)
 
 SQL transaction
