@@ -121,7 +121,7 @@ Example:
 	});
 
 #### del
-	del(table, where, whereArgs, success, error)
+	db.del(table, where, whereArgs, success, error)
 
 Convenience method for deleting rows in the database
 
@@ -140,7 +140,7 @@ Example:
 	});
 
 #### query
-	query(table, columns, where, whereArgs, groupBy, having, orderBy, limit, success, error)
+	db.query(table, columns, where, whereArgs, groupBy, having, orderBy, limit, success, error)
 
 Query the given table
 
@@ -168,7 +168,7 @@ Example:
 	});
 
 #### transaction
-	transaction(fn, success, error)
+	db.transaction(fn, success, error)
 
 SQL transaction
 
