@@ -36,11 +36,10 @@
 	root.PGSQLitePlugin = (function() {
 		PGSQLitePlugin.prototype.openDBs = {};
 		
-		function PGSQLitePlugin(dbPath, openSuccess, openError, options) {
+		function PGSQLitePlugin(dbPath, openSuccess, openError, options) {		   
 			this.dbPath = dbPath;
 			this.openSuccess = openSuccess;
 			this.openError = openError;
-			
 			if (!dbPath) {
 				throw new Error("Cannot create a PGSQLitePlugin instance without a dbPath");
 			}
@@ -188,15 +187,24 @@
  		};
  		
  	PGSQLitePlugin.prototype.open = function(success, error, options) {
- 		var opts;
+ 		var opts, self = this;
  		if (!(this.dbPath in this.openDBs)) {
- 			this.openDBs[this.dbPath] = true;
  			opts = getOptions({
  								path: this.dbPath,
  								options : options
- 								}, success, error); 
+							  }, function(result){
+							  self.openDBs[self.dbPath] = { self : self, result : result};
+							  	if (typeof success == "function"){
+							  		success(result, self);
+							  	}
+							  }, error); 
  			gap.exec("PGSQLitePlugin.open", opts);
  		}
+		else {
+			if (typeof success == "function"){
+				success(self.openDBs[self.dbPath].result, self.openDBs[self.dbPath].self);
+			}
+		}
  	};
  	
  	PGSQLitePlugin.prototype.close = function(success, error) {
@@ -210,15 +218,17 @@
  		}
  	};
  	
- 	PGSQLitePlugin.prototype.remove = function(success, error) {
- 		var opts; 		
- 		opts = getOptions({
- 			path: this.dbPath
- 		}, success, error);
-	 	gap.exec("PGSQLitePlugin.remove", opts);
+ 	PGSQLitePlugin.remove = function(dbName, success, error) {			   
+ 		var opts;
+		opts = getOptions({
+							 path: dbName
+						 }, success, error);
+		gap.exec("PGSQLitePlugin.remove", opts);
  	};
  	
  	return PGSQLitePlugin;
+									
+						   
  })();
  
  root.PGSQLitePluginTransaction = (function() {
@@ -301,7 +311,8 @@
   var root = this;
   
   root.PGSQLitePlugin = (function() {
-    
+	
+	PGSQLitePlugin.prototype.openDBs = {};
     function PGSQLitePlugin(dbPath, success, error, options) {
       this.dbPath = dbPath;
       if (!dbPath) {
@@ -311,15 +322,28 @@
     }
     
     PGSQLitePlugin.prototype.open = function(success, error, options) {
-        return gap.exec(success, error, 'PGSQLitePlugin', 'open', [this.dbPath, options]);
+    	var self = this;
+ 		if (!(this.dbPath in this.openDBs)) {
+ 			gap.exec(function(result){
+				  self.openDBs[self.dbPath] = { self : self, result : result};
+				  	if (typeof success == "function"){
+				  		success(result, self);
+				  	}
+ 			}, error, 'PGSQLitePlugin', 'open', [this.dbPath, options])
+ 		}
+		else {
+			if (typeof success == "function"){
+				success(self.openDBs[self.dbPath].result, self.openDBs[self.dbPath].self);
+			}
+		}
     };
     
     PGSQLitePlugin.prototype.close = function(success, error) {
       	return gap.exec(success, error, 'PGSQLitePlugin', 'close', [this.dbPath]);
     };
     
-    PGSQLitePlugin.prototype.remove = function(success, error) {
-        return gap.exec(success, error, 'PGSQLitePlugin', 'remove', [this.dbPath]);
+    PGSQLitePlugin.remove = function(dbName, success, error) {
+        return gap.exec(success, error, 'PGSQLitePlugin', 'remove', [dbName]);
     };
     
     PGSQLitePlugin.prototype.executeSql = function(sql, success, error) {

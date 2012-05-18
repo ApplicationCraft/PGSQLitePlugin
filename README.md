@@ -38,10 +38,22 @@ All functions are called on the created PGSQLitePlugin object:
 
 
 	name - database name
-	successOpenDatabaseFunction - success callback function, return object: 
+	successOpenDatabaseFunction - success callback function, return arguments:
+	first argument - object: 
 		obj.version - database version, 
 		obj.status - number, 0 - database opened, 1 - database created, 2 - database created from resources
+	second argument - db - database object
 	errorOpenDatabaseFunction - error callback function
+	
+Example:
+	
+	var db = new PGSQLitePlugin("testdb.sqlite3", function(dbResult, dbObject){
+		console.log("Database status=" + dbResult.status);
+		console.log("Database version=" + dbResult.version);
+		db = dbObject;
+	}, function(err){
+		console.log("Error create database::err=" + err);
+	});
 
 ### Methods
 
@@ -62,12 +74,21 @@ Close database function
 	error - error callback function
 
 #### remove
-    db.remove(success, error)
+    PGSQLitePlugin.remove(dbName, success, error)
 
 Remove database function
 
+	dbName - database name
 	success - success callback function
 	error - error callback function
+	
+Example:
+
+	PGSQLitePlugin.remove("testdb.sqlite3", function(){
+		console.log("database was removed");
+	}, function(err){
+		console.log("error remove database::err=" + err);
+	});
 
 #### executeSql
 	db.executeSql(sql, success, error)
