@@ -386,9 +386,11 @@ public class PGSQLitePlugin extends Plugin {
 	
 	private PluginResult remove(JSONArray data){
 		PluginResult result = null;
+		JSONObject ret = new JSONObject();
 		try {
 						
 			Log.i("PGSQLitePlugin", "remove action");
+			ret.put("status", 1);
 			String dbName = data.getString(0);
 			File dbFile=null;
 			SQLiteDatabase db = getDb(dbName);
@@ -401,7 +403,9 @@ public class PGSQLitePlugin extends Plugin {
 				
 				dbFile = ((Context)this.ctx).getDatabasePath(dbName);
     			if (!dbFile.exists()){
-    				result = new PluginResult(PluginResult.Status.ERROR, "Database not exist");
+    				ret.put("message", "Database not exist");
+    				ret.put("status", 0);
+    				result = new PluginResult(PluginResult.Status.ERROR, ret);
     			}
     			else {
     				if (dbFile.delete()){
@@ -409,7 +413,9 @@ public class PGSQLitePlugin extends Plugin {
     					result = new PluginResult(PluginResult.Status.OK);
     				}
     				else {
-    					result = new PluginResult(PluginResult.Status.ERROR, "Can't delete database");
+    					ret.put("message", "Can't remove db");
+        				ret.put("status", 2);
+    					result = new PluginResult(PluginResult.Status.ERROR, ret);
     				}
     			}
 			}
@@ -419,12 +425,14 @@ public class PGSQLitePlugin extends Plugin {
 					Log.i("PGSQLitePlugin", "remove action::remove from sdcard");
 				}
 				else {
-					result = new PluginResult(PluginResult.Status.ERROR, "Can't delete database");
+					ret.put("message", "Can't remove db");
+    				ret.put("status", 2);
+					result = new PluginResult(PluginResult.Status.ERROR, ret);
 				}
 			}
 		} catch (Exception e) {
 			Log.e("PGSQLitePlugin", e.getMessage());
-			result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
+			result = new PluginResult(PluginResult.Status.ERROR, ret);
 		}
 		
 		return result;
@@ -462,7 +470,7 @@ public class PGSQLitePlugin extends Plugin {
 			        		long blockSize = stat.getBlockSize();
 			        		long availableBlocks = stat.getBlockCount();
 			        		long size = blockSize * availableBlocks; 
-			        		if (size >= 1024*1024*1024){ //more then 1Гб
+			        		if (size >= 1024*1024*1024){ //more then 1–ì–±
 			        			dbFile = ((Context)this.ctx).getDatabasePath(dbName);
 			        		}
 			        		else {

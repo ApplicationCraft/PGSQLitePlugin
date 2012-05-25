@@ -80,14 +80,16 @@ Remove database function
 
 	dbName - database name
 	success - success callback function
-	error - error callback function
+	error - error callback function, first argument - object: 
+		obj.status - 0 - database not exist, otherwice - other erorr 
+		obj.message - error message
 	
 Example:
 
 	PGSQLitePlugin.remove("testdb.sqlite3", function(){
 		console.log("database was removed");
 	}, function(err){
-		console.log("error remove database::err=" + err);
+		console.log("error remove database::err.message=" + err.message + "::err.status="+err.status);
 	});
 
 #### executeSql

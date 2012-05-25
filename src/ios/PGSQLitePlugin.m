@@ -65,21 +65,22 @@
 	
 	
 	if (!success){
-		[self respond:callback withString:@"{ message: 'Database path not found' }" withType:@"error"];
+		[self respond:callback withString:@"{ message: 'Database path not found', status : 0 }" withType:@"error"];
 		return;
 	}
 	
 	if (dbPath == NULL) {
-		[self respond:callback withString:@"{ message: 'You must specify database path' }" withType:@"error"];
+		[self respond:callback withString:@"{ message: 'You must specify database path', status : 1 }" withType:@"error"];
 		return;
 	}
 	
 	success = [fileManager removeItemAtPath:dbPath error:&error];
     if (!success){
     	NSLog(@"Error: %@", [error localizedDescription]);
-    	[self respond:callback withString:@"{ message: 'Can't remove db' }" withType:@"error"];
+    	[self respond:callback withString:@"{ message: 'Can't remove db', status : 2 }" withType:@"error"];
     }
 	else {
+		NSLog(@"database %@ was removed", dbPath);
 		[self respond:callback withString:@"{ message: 'Db was removed' }" withType:@"success"];
     }
 }
