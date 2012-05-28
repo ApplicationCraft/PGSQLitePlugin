@@ -218,11 +218,16 @@
  		}
  	};
  	
+ 	PGSQLitePlugin.prototype.remove = function(dbName, success, error) {
+    	PGSQLitePlugin.remove(dbName, success, error);
+    };
+ 	
  	PGSQLitePlugin.remove = function(dbName, success, error) {			   
  		var opts;
 		opts = getOptions({
 							 path: dbName
 						 }, success, error);
+		delete PGSQLitePlugin.prototype.openDBs[dbName];
 		gap.exec("PGSQLitePlugin.remove", opts);
  	};
  	
@@ -339,11 +344,14 @@
     };
     
     PGSQLitePlugin.prototype.close = function(success, error) {
-      	return gap.exec(success, error, 'PGSQLitePlugin', 'close', [this.dbPath]);
+    	if (this.dbPath in this.openDBs) {
+ 			delete this.openDBs[this.dbPath];
+      		return gap.exec(success, error, 'PGSQLitePlugin', 'close', [this.dbPath]);
+      	}
     };
     
-    PGSQLitePlugin.remove = function(dbName, success, error) {
-        return gap.exec(success, error, 'PGSQLitePlugin', 'remove', [dbName]);
+    PGSQLitePlugin.prototype.remove = function(dbName, success, error) {
+    	PGSQLitePlugin.remove(dbName, success, error);
     };
     
     PGSQLitePlugin.prototype.executeSql = function(sql, success, error) {
@@ -376,6 +384,11 @@
       	if (error) error(er);
       }
     };
+    
+    PGSQLitePlugin.remove = function(dbName, success, error) {			   
+		delete PGSQLitePlugin.prototype.openDBs[dbName];
+		return gap.exec(success, error, 'PGSQLitePlugin', 'remove', [dbName]);
+ 	};
     
     return PGSQLitePlugin;
   })();
