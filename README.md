@@ -5,7 +5,8 @@ and iOS are currently supported
 
 The goal is for a single JavaScript file to be usable on all supported
 platforms, and the native code to be installed in a project through a [separate
-script](http://github.com/alunny/pluginstall).
+script](http://github.com/alunny/pluginstall) (to install on iOS, you will need
+pluginstall version 0.3.1 or above)
 
 ## The Structure
 
