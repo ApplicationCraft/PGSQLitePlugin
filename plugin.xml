@@ -27,6 +27,5 @@
                     string="PGSQLitePlugin" />
         <source-file src="PGSQLitePlugin.h" />
         <source-file src="PGSQLitePlugin.m" />
-        <framework src="libsqlite3.dylib" />
     </platform>
 </plugin>
