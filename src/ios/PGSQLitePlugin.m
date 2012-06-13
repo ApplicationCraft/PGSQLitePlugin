@@ -187,7 +187,7 @@
             if ( sqlite3_get_autocommit(db) == 0){
                 sqlite3_exec(db, "ROLLBACK", NULL, NULL, NULL);
             }
-            [self respond:callback withString:@"{ message: 'Error transaction' }" withType:@"error"];
+            [self respond:callback withString:[NSString stringWithFormat:@"{ message: 'SQL statement error : %s' }", sqlite3_errmsg(db)] withType:@"error"];
             return;
         }
 	}

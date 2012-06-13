@@ -449,7 +449,7 @@ function PGSQLiteHelper(){
 			}
 			else {
 				if (result.version != _version){
-					__self.onUpdate(_version, function(){
+					__self.onUpdate(result.version, function(){
 						__self.db.executeSql("PRAGMA user_version='"+_version + "'" , function(res){
 							if (typeof success == "function"){
 								success( __self.db, _version);
