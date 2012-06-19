@@ -32,6 +32,7 @@ public class PGSQLitePlugin extends Plugin {
 	private static final String ACTION_QUERY="query";
 	private static final String ACTION_REMOVE="remove";
 	private static final String ACTION_BATCHEXECUTE="backgroundExecuteSqlBatch";
+	private static final String ACTION_TRANSACTION="transactionExecuteSqlBatch";
 	
 	private static final String USE_INTERNAL="internal";
 	private static final String USE_EXTERNAL="external";
@@ -46,8 +47,8 @@ public class PGSQLitePlugin extends Plugin {
 		if (action.equals(PGSQLitePlugin.ACTION_EXECUTE)) {
         	result = rawQuery(data);
         } 
-        else if (action.equals(PGSQLitePlugin.ACTION_BATCHEXECUTE)) {
-        	result = batchRawQuery(data);
+        else if (action.equals(PGSQLitePlugin.ACTION_TRANSACTION)) {
+        	result = batchRawQuery(data, true);
         }
         else if (action.equals(PGSQLitePlugin.ACTION_INSERT)) {
         	result = insertQuery(data);
@@ -69,6 +70,9 @@ public class PGSQLitePlugin extends Plugin {
         }
         else if (action.equals(PGSQLitePlugin.ACTION_REMOVE)) {
         	result = remove(data);
+        }
+        else if (action.equals(PGSQLitePlugin.ACTION_BATCHEXECUTE)) {
+        	result = batchRawQuery(data);
         }
 		else {
         	result = new PluginResult(PluginResult.Status.NO_RESULT);
@@ -293,13 +297,21 @@ public class PGSQLitePlugin extends Plugin {
 	}
 	
 	private PluginResult batchRawQuery(JSONArray data){
+		return batchRawQuery(data, false);
+	}
+	
+	private PluginResult batchRawQuery(JSONArray data, boolean transaction){
 		PluginResult result = null;
+		SQLiteDatabase db = null;
 		try {
 			Log.d("PGSQLitePlugin", "batchRawQuery");
 			String dbName = data.getString(0);
-			SQLiteDatabase db = getDb(dbName);
+			db = getDb(dbName);
 			JSONArray batch = (JSONArray)data.get(1);
 			int len = batch.length();
+			if (transaction){
+				db.beginTransaction();
+			}
 			for (int i = 0; i < len; i++){
 				JSONObject el = (JSONObject)batch.get(i);
 				String type = el.getString("type");
@@ -330,16 +342,27 @@ public class PGSQLitePlugin extends Plugin {
 				}
 				if (result == null ){
 					result = new PluginResult(PluginResult.Status.ERROR, "Unknow action");
+					if (transaction){
+						db.endTransaction();
+					}
 					break;
 				}
 				else if (result.getStatus() != 1){
-					if (db.inTransaction())
-						db.rawQuery("ROLLBACK;", null);
+					if (transaction){
+						db.endTransaction();
+					}
 					result = new PluginResult(PluginResult.Status.ERROR, result.getMessage());
 					break;
 				}
 			}
+			if (transaction){
+				db.setTransactionSuccessful();
+				db.endTransaction();
+			}
 		} catch (Exception e) {
+			if (db != null && db.inTransaction()){
+				db.endTransaction();
+			}
 			Log.e("PGSQLitePlugin", "error batch" + e.getMessage());
 			result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
 		}
@@ -356,10 +379,11 @@ public class PGSQLitePlugin extends Plugin {
 			
 			Log.d("PGSQLitePlugin", "rawQuery action::sql="+sql);
 
-			Cursor cs = db.rawQuery(sql, null);
+			Cursor cs = db.rawQuery(sql, new String [] {});
 			JSONObject res = new JSONObject();
 			JSONArray rows = new JSONArray();
-			if (cs.moveToFirst()) {
+
+			if (cs != null && cs.moveToFirst()) {
 				String[] names = cs.getColumnNames();
 				int namesCoint = names.length;
 			    do {
@@ -370,9 +394,9 @@ public class PGSQLitePlugin extends Plugin {
 			    	}
 			    	rows.put( row );
 			    } while (cs.moveToNext());
+			    cs.close();
 			}
 			res.put("rows", rows);
-			cs.close();
 			Log.d("PGSQLitePlugin", "rawQuery action::count="+rows.length());
 			result = new PluginResult(PluginResult.Status.OK, res);
 			
@@ -470,7 +494,7 @@ public class PGSQLitePlugin extends Plugin {
 			        		long blockSize = stat.getBlockSize();
 			        		long availableBlocks = stat.getBlockCount();
 			        		long size = blockSize * availableBlocks; 
-			        		if (size >= 1024*1024*1024){ //more then 1–ì–±
+			        		if (size >= 1024*1024*1024){ //more then 1 Gb
 			        			dbFile = ((Context)this.ctx).getDatabasePath(dbName);
 			        		}
 			        		else {

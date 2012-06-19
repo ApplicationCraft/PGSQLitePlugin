@@ -416,8 +416,7 @@
     };
     
     PGSQLitePluginTransaction.prototype.complete = function(success, error) {
-      this.executes = [ { opts :  ["BEGIN;"], type : "raw"} ].concat(this.executes).concat(  [{ opts :  ["COMMIT;"], type : "raw"}]);
-      gap.exec(success, error, 'PGSQLitePlugin', 'backgroundExecuteSqlBatch', [this.dbPath, this.executes]);
+      gap.exec(success, error, 'PGSQLitePlugin', 'transactionExecuteSqlBatch', [this.dbPath, this.executes]);
     };
     return PGSQLitePluginTransaction;
   })();
