@@ -135,6 +135,7 @@
 	
 	_status = [NSNumber numberWithInt:status];
 	[resultSet setObject:_status forKey:@"status"];
+	[resultSet setObject:dbPath forKey:@"systemPath"];
     
     NSLog(@"%s: sqlite3_get_autocommit::open , %d", __FUNCTION__,  sqlite3_get_autocommit(db)  );
 	

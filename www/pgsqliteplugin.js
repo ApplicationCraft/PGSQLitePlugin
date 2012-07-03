@@ -441,7 +441,7 @@ function PGSQLiteHelper(){
 				__self.onCreate(function(){
 					__self.db.executeSql("PRAGMA user_version='"+_version + "'", function(res){
 						if (typeof success == "function"){
-							success( __self.db, _version);
+							success( __self.db, _version, result.systemPath);
 						}
 					}, error);
 				}, error);
@@ -451,14 +451,14 @@ function PGSQLiteHelper(){
 					__self.onUpdate(result.version, function(){
 						__self.db.executeSql("PRAGMA user_version='"+_version + "'" , function(res){
 							if (typeof success == "function"){
-								success( __self.db, _version);
+								success( __self.db, _version, result.systemPath);
 							}
 						}, error);
 					}, error);
 				}
 				else {
 					if (typeof success == "function"){ 
-						success( __self.db, _version);
+						success( __self.db, _version, result.systemPath);
 					}
 				}
 			}

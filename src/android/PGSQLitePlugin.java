@@ -246,14 +246,8 @@ public class PGSQLitePlugin extends Plugin {
 			}
 			SQLiteDatabase db = getDb(dbName);
 		    long count = db.delete(tableName, where, _whereArgs);
-		    if (count == 0){
-				result = new PluginResult(PluginResult.Status.ERROR, "Delete error");
-			}
-		    else {
-		    	result = new PluginResult(PluginResult.Status.OK, count);
-		    }
-		    Log.d("PGSQLitePlugin", "deleteQuery::count=" + count);
-			
+		    result = new PluginResult(PluginResult.Status.OK, count);
+		    Log.d("PGSQLitePlugin", "deleteQuery::count=" + count);			
 			
 		} catch (Exception e) {
 			Log.e("PGSQLitePlugin", e.getMessage());
@@ -543,6 +537,7 @@ public class PGSQLitePlugin extends Plugin {
 			JSONObject ret = new JSONObject();
 			ret.put( "status", status );
 			ret.put( "version", db.getVersion() );
+			ret.put( "systemPath", _dbName );			
 			
 			result = new PluginResult(PluginResult.Status.OK, ret);
 		} catch (Exception e) {
