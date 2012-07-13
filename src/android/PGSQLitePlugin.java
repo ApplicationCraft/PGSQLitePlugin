@@ -314,7 +314,7 @@ public class PGSQLitePlugin extends Plugin {
 				JSONArray rData = new JSONArray();
 				rData.put(dbName);
 				for (int j = 0; j < len1; j++){
-					rData.put(args.getString(j) );
+					rData.put(args.get(j) );
 				}
 				
 				Log.d("PGSQLitePlugin", "batchRawQuery::type="+type);
