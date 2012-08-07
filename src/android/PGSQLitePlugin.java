@@ -416,10 +416,11 @@ public class PGSQLitePlugin extends Plugin {
 				db.close();
 				openDbs.remove(dbName);
 			}
-			dbFile = new File(  ((Context)this.ctx).getExternalFilesDir(null), dbName);
+			
+			dbFile = new File(  this.cordova.getActivity().getExternalFilesDir(null), dbName);
 			if (!dbFile.exists()){
 				
-				dbFile = ((Context)this.ctx).getDatabasePath(dbName);
+				dbFile = this.cordova.getActivity().getDatabasePath(dbName);
     			if (!dbFile.exists()){
     				ret.put("message", "Database not exist");
     				ret.put("status", 0);
@@ -477,22 +478,22 @@ public class PGSQLitePlugin extends Plugin {
 			File dbFile=null;
 	        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) && !storage.equals(PGSQLitePlugin.USE_INTERNAL) ) {
 	        	if (storage.equals(PGSQLitePlugin.USE_EXTERNAL)){
-	        		dbFile = new File(((Context)this.ctx).getExternalFilesDir(null), dbName);
+	        		dbFile = new File(this.cordova.getActivity().getExternalFilesDir(null), dbName);
 	        	}
 	        	else {
-	        		dbFile = ((Context)this.ctx).getDatabasePath(dbName);
+	        		dbFile = this.cordova.getActivity().getDatabasePath(dbName);
 	        		if (!dbFile.exists()){
-	        			dbFile = new File(((Context)this.ctx).getExternalFilesDir(null), dbName);
+	        			dbFile = new File(this.cordova.getActivity().getExternalFilesDir(null), dbName);
 	        			if (!dbFile.exists()){
 			        		StatFs stat = new StatFs("/data/");
 			        		long blockSize = stat.getBlockSize();
 			        		long availableBlocks = stat.getBlockCount();
 			        		long size = blockSize * availableBlocks; 
 			        		if (size >= 1024*1024*1024){ //more then 1 Gb
-			        			dbFile = ((Context)this.ctx).getDatabasePath(dbName);
+			        			dbFile = this.cordova.getActivity().getDatabasePath(dbName);
 			        		}
 			        		else {
-			        			dbFile = new File(((Context)this.ctx).getExternalFilesDir(null), dbName);
+			        			dbFile = new File(this.cordova.getActivity().getExternalFilesDir(null), dbName);
 			        		}
 			        		Log.i("blockSize * availableBlocks", Long.toString(size) );
 	        			}
@@ -500,7 +501,7 @@ public class PGSQLitePlugin extends Plugin {
 	        	}
 	        }
 	        else{
-	            dbFile = ((Context)this.ctx).getDatabasePath(dbName);
+	            dbFile = this.cordova.getActivity().getDatabasePath(dbName);
 	        }
 	        _dbName = dbFile.getPath();
 			
@@ -512,7 +513,7 @@ public class PGSQLitePlugin extends Plugin {
 				if (!dbFile.exists()){
 					status = 1;
 					try{
-						InputStream assetsDB = this.ctx.getAssets().open( "www/db/" + dbName );
+						InputStream assetsDB = ((Context)this.cordova.getActivity()).getAssets().open( "www/db/" + dbName );
 					    OutputStream dbOut = new FileOutputStream( _dbName );
 					 
 					    byte[] buffer = new byte[1024];
