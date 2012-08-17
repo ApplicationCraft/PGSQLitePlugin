@@ -5,33 +5,10 @@
  		return;
  	}
  
-	var callbacks, cbref, counter, getOptions, root;
+	var callbacks, counter, root;
 	root = this;
 	callbacks = {};
 	counter = 0;
-	
-	cbref = function(hash) {
-		var f;
-		f = "cb" + (counter += 1);
-		callbacks[f] = hash;
-		return f;
-	};
- 
-	getOptions = function(opts, success, error) {
-		var cb, has_cbs;
-		cb = {};
-		has_cbs = false;
-		if (typeof success === "function") {
-			has_cbs = true;
-			cb.success = success;
-		}
-		if (typeof error === "function") {
-			has_cbs = true;
-			cb.error = error;
-		}
-		if (has_cbs) opts.callback = cbref(cb);
-		return opts;
-	};
 	
 	root.PGSQLitePlugin = (function() {
 		PGSQLitePlugin.prototype.openDBs = {};
@@ -55,23 +32,9 @@
 			this.open(this.openSuccess, this.openError, options);
 		}
 		
-		PGSQLitePlugin.handleCallback = function(ref, type, obj) {
-			var _ref;
-			if ((_ref = callbacks[ref]) != null) {
-				if (typeof _ref[type] === "function") _ref[type](obj);
-			}
-			callbacks[ref] = null;
-			delete callbacks[ref];
-		};
-		
 		PGSQLitePlugin.prototype.executeSql = function(sql, success, error) {
-			var opts;
 			if (!sql) throw new Error("Cannot executeSql without a query");
-			opts = getOptions({
-								query: [].concat(sql || []),
-								path: this.dbPath
-								}, success, error);
-			gap.exec("PGSQLitePlugin.backgroundExecuteSql", opts);
+ 		    return gap.exec(success, error, 'PGSQLitePlugin', 'backgroundExecuteSql', [this.dbPath, [].concat(sql || [])]);
 		};
 		
 		PGSQLitePlugin.prototype.transaction = function(fn, success, error) {
@@ -108,8 +71,10 @@
 		};
 		
 		PGSQLitePlugin.prototype.del = function(table, where, whereArgs, success, error, compile) {
-			var sql = "DELETE FROM " + table + " WHERE ";
-			sql += where;
+			var sql = "DELETE FROM " + table;
+			if (where){
+				sql += " WHERE " + where;
+			}
 			var aSql = [];
 			aSql.push(sql);
 			if (whereArgs){
@@ -187,34 +152,27 @@
  		};
  		
  	PGSQLitePlugin.prototype.open = function(success, error, options) {
- 		var opts, self = this;
+ 		var self = this;
  		if (!(this.dbPath in this.openDBs)) {
- 			opts = getOptions({
- 								path: this.dbPath,
- 								options : options
-							  }, function(result){
-							  self.openDBs[self.dbPath] = { self : self, result : result};
-							  	if (typeof success == "function"){
-							  		success(result, self);
-							  	}
-							  }, error); 
- 			gap.exec("PGSQLitePlugin.open", opts);
+ 			this.openDBs[this.dbPath] = true;
+		    return gap.exec(success, error, 'PGSQLitePlugin', 'open', [this.dbPath, options]);
  		}
 		else {
 			if (typeof success == "function"){
-				success(self.openDBs[self.dbPath].result, self.openDBs[self.dbPath].self);
+				return success(self.openDBs[self.dbPath].result, self.openDBs[self.dbPath].self);
 			}
 		}
  	};
  	
  	PGSQLitePlugin.prototype.close = function(success, error) {
- 		var opts;
  		if (this.dbPath in this.openDBs) {
  			delete this.openDBs[this.dbPath];
- 			opts = getOptions({
- 				path: this.dbPath
- 			}, success, error);
-	 		gap.exec("PGSQLitePlugin.close", opts);
+ 			return gap.exec(success, error, 'PGSQLitePlugin', 'close', [this.dbPath]);
+ 		}
+ 		else {
+ 			if (typeof error == "function"){
+ 				error("DB not opened");
+ 			}
  		}
  	};
  	
@@ -223,12 +181,8 @@
     };
  	
  	PGSQLitePlugin.remove = function(dbName, success, error) {			   
- 		var opts;
-		opts = getOptions({
-							 path: dbName
-						 }, success, error);
 		delete PGSQLitePlugin.prototype.openDBs[dbName];
-		gap.exec("PGSQLitePlugin.remove", opts);
+		return gap.exec(success, error, 'PGSQLitePlugin', 'remove', [dbName]);
  	};
  	
  	return PGSQLitePlugin;
@@ -244,60 +198,32 @@
  	}
  	
  	PGSQLitePluginTransaction.prototype.executeSql = function(sql, success, error) {
- 		this.executes.push(getOptions({
- 										query: [].concat(sql || []),
- 										path: this.dbPath
- 										}, success, error));
+ 		this.executes.push([].concat(sql || []));
  	};
  		
  	PGSQLitePluginTransaction.prototype.insert = function(table, values, success, error) {
  		var sql = this.db.insert(table, values, undefined, undefined, true );
- 		this.executes.push(getOptions({
- 										query: [].concat(sql || []),
- 										path: this.dbPath
- 										}, success, error));
+ 		this.executes.push([].concat(sql || []));
  	};
  	
  	PGSQLitePluginTransaction.prototype.del = function(table, where, whereArgs, success, error) {
  		var sql = this.db.del(table, where, whereArgs, undefined, undefined, true );
- 		this.executes.push(getOptions({
- 										query: [].concat(sql || []),
- 										path: this.dbPath
- 										}, success, error));
+ 		this.executes.push([].concat(sql || []));
  	};
  	
  	PGSQLitePluginTransaction.prototype.query = function(table, columns, where, whereArgs, groupBy, having, orderBy, limit, success, error) {
  		var sql = this.db.query(table, columns, where, whereArgs, groupBy, having, orderBy, limit, undefined, undefined, true );
- 		this.executes.push(getOptions({
- 										query: [].concat(sql || []),
- 										path: this.dbPath
- 										}, success, error));
+ 		this.executes.push([].concat(sql || []));
  	};
  	
  	PGSQLitePluginTransaction.prototype.update = function(table, values, where, whereArgs, success, error) {
  		var sql = this.db.update(table, values, where, whereArgs, undefined, undefined, true );
- 		this.executes.push(getOptions({
- 										query: [].concat(sql || []),
- 										path: this.dbPath
- 										}, success, error));
+ 		this.executes.push([].concat(sql || []));
  	};
  	
  	PGSQLitePluginTransaction.prototype.complete = function(success, error) {
- 		var begin_opts, commit_opts, executes, opts;
- 		begin_opts = getOptions({
- 									query: ["BEGIN;"],
- 									path: this.dbPath
- 									});
- 		commit_opts = getOptions({
- 									query: ["COMMIT;"],
- 									path: this.dbPath
- 									});
- 		executes = [begin_opts].concat(this.executes).concat([commit_opts]);
- 		opts = getOptions({
- 							executes: executes,
- 							path: this.dbPath
- 							}, success, error);
- 		gap.exec("PGSQLitePlugin.backgroundExecuteSqlBatch", opts);
+ 		var executes = [ ["BEGIN;"] ].concat(this.executes).concat([ ["COMMIT;"] ] );
+		gap.exec(success, error, 'PGSQLitePlugin', 'backgroundExecuteSqlBatch', [this.dbPath, executes]);
  		this.executes = [];
  	};
  	return PGSQLitePluginTransaction;

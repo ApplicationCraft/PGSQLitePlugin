@@ -19,13 +19,6 @@
 	return self;
 }
 
--(void) respond: (id)cb withString:(NSString *)str withType:(NSString *)type {
-	if (cb != NULL) {
-		NSString* jsString = [NSString stringWithFormat:@"PGSQLitePlugin.handleCallback('%@', '%@', %@);", cb, type, str ];
-		[self writeJavascript:jsString];
-	}
-}
-
 -(id) getDBPath:(id)dbFile {
 	if (dbFile == NULL) {
 		return NULL;
@@ -55,42 +48,56 @@
 
 -(void) remove: (NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
-	NSString *callback = [options objectForKey:@"callback"];
-	NSString *dbPath = [self getDBPath:[options objectForKey:@"path"]];
+	NSString *callback = [arguments objectAtIndex:0];	
+	NSString *dbPath = [self getDBPath:[arguments objectAtIndex:1]];
+	NSMutableDictionary *resultSet = [NSMutableDictionary dictionaryWithCapacity:0];
 	
 	BOOL success;
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	NSError *error;
 	success = [fileManager fileExistsAtPath:dbPath];
-	
-	
+		
 	if (!success){
-		[self respond:callback withString:@"{ message: 'Database path not found', status : 0 }" withType:@"error"];
+		[resultSet setObject:@"Database path not found" forKey:@"message"];
+		[resultSet setObject:@"2" forKey:@"status"];
+    	CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+												messageAsDictionary:resultSet];
+		[self writeJavascript: [result toErrorCallbackString:callback]];
 		return;
 	}
 	
 	if (dbPath == NULL) {
-		[self respond:callback withString:@"{ message: 'You must specify database path', status : 1 }" withType:@"error"];
+		[resultSet setObject:@"You must specify database path" forKey:@"message"];
+		[resultSet setObject:@"2" forKey:@"status"];
+    	CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+												messageAsDictionary:resultSet];
+		[self writeJavascript: [result toErrorCallbackString:callback]];
 		return;
 	}
 	
 	success = [fileManager removeItemAtPath:dbPath error:&error];
     if (!success){
     	NSLog(@"Error: %@", [error localizedDescription]);
-    	[self respond:callback withString:@"{ message: 'Can't remove db', status : 2 }" withType:@"error"];
+		[resultSet setObject:[error localizedDescription] forKey:@"message"];
+		[resultSet setObject:@"2" forKey:@"status"];
+    	CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+												messageAsDictionary:resultSet];
+		[self writeJavascript: [result toErrorCallbackString:callback]];
     }
 	else {
-		NSLog(@"database %@ was removed", dbPath);
-		[self respond:callback withString:@"{ message: 'Db was removed' }" withType:@"success"];
+		[resultSet setObject:@"Db was removed" forKey:@"message"];		
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+												messageAsDictionary:resultSet];
+		[self writeJavascript: [result toSuccessCallbackString:callback]];
     }
 }
 
 -(void) open: (NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
-	NSString *callback = [options objectForKey:@"callback"];
-	NSString *dbPath = [self getDBPath:[options objectForKey:@"path"]];
+	NSString *callback = [arguments objectAtIndex:0];	
+	NSString *dbPath = [self getDBPath:[arguments objectAtIndex:1]];
 	NSMutableDictionary *resultSet = [NSMutableDictionary dictionaryWithCapacity:0];
-	
+		
 	BOOL success;
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	NSError *error;
@@ -102,7 +109,7 @@
 	
 	if (!success){
 		status = 1;
-		NSString* fullFileName = [options objectForKey:@"path"];
+		NSString* fullFileName = [arguments objectAtIndex:1];
 		NSString* fileName = [[fullFileName lastPathComponent] stringByDeletingPathExtension];
 		NSString* extension = [fullFileName pathExtension];
 		NSString *dbPath2 = [[NSBundle mainBundle] pathForResource:fileName ofType:extension];
@@ -117,15 +124,23 @@
 	
 	
 	if (dbPath == NULL) {
-		[self respond:callback withString:@"{ message: 'You must specify database path' }" withType:@"error"];
+		[resultSet setObject:@"You must specify database path" forKey:@"message"];		
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+												messageAsDictionary:resultSet];		
+		[self writeJavascript: [result toErrorCallbackString:callback]];
 		return;
 	}
 	
 	sqlite3 *db;
 	const char *path = [dbPath UTF8String];
 	
-	if (sqlite3_open(path, &db) != SQLITE_OK) {
-		[self respond:callback withString:@"{ message: 'Unable to open DB' }" withType:@"error"];
+	if (sqlite3_open(path, &db) != SQLITE_OK) {	
+		        NSLog(@"%s: path is: %s", __FUNCTION__, sqlite3_errmsg(db));
+		
+		[resultSet setObject:@"Unable to open DB" forKey:@"message"];		
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+												messageAsDictionary:resultSet];		
+		[self writeJavascript: [result toErrorCallbackString:callback]];
 		return;
 	}
 	
@@ -137,83 +152,110 @@
 	[resultSet setObject:_status forKey:@"status"];
 	[resultSet setObject:dbPath forKey:@"systemPath"];
     
-    NSLog(@"%s: sqlite3_get_autocommit::open , %d", __FUNCTION__,  sqlite3_get_autocommit(db)  );
+    NSLog(@"%s: sqlite3_get_autocommit::open , %d, %@", __FUNCTION__,  sqlite3_get_autocommit(db) , dbPath );
 	
 	NSValue *dbPointer = [NSValue valueWithPointer:db];
 	[openDBs setObject:dbPointer forKey: dbPath];
-	[self respond:callback withString:[resultSet JSONString] withType:@"success"];
+		
+	CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+											messageAsDictionary:resultSet];
+	[self writeJavascript: [result toSuccessCallbackString:callback]];
 }
 
 -(void) backgroundExecuteSqlBatch: (NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
-{
-	[self performSelector:@selector(_executeSqlBatch:) withObject:options afterDelay:0.001];
+{	
+	[self performSelector:@selector(_executeSqlBatch:) withObject:arguments afterDelay:0.001];
 }
 
 -(void) backgroundExecuteSql: (NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
-	[self performSelector:@selector(_executeSql:) withObject:options afterDelay:0.001];
+	[self performSelector:@selector(_executeSql:) withObject:arguments afterDelay:0.001];
 }
 
--(void) _executeSqlBatch:(NSMutableDictionary*)options
+-(void) _executeSqlBatch:(NSMutableArray*)arguments
 {
-	[self executeSqlBatch:NULL withDict:options];
+	[self executeSqlBatch:arguments withDict:NULL];
 }
 
--(void) _executeSql:(NSMutableDictionary*)options
+-(void) _executeSql:(NSMutableArray*)arguments
 {
-	[self executeSql:NULL withDict:options];
+	NSMutableArray *dict = [arguments objectAtIndex:2];	
+	NSMutableDictionary *query = [NSMutableDictionary dictionaryWithCapacity:0];
+	[query setObject:dict forKey:@"query"];
+	[self executeSql:arguments withDict:query];
 }
 
 -(void) executeSqlBatch: (NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
-    NSString *callback = [options objectForKey:@"callback"];
-    NSString *dbPath = [self getDBPath:[options objectForKey:@"path"]];
+	NSString *callback = [arguments objectAtIndex:0];	
+	NSString *dbPath = [self getDBPath:[arguments objectAtIndex:1]];
+	
     if (dbPath == NULL) {
-		[self respond:callback withString:@"{ message: 'You must specify database path' }" withType:@"error"];
+    	CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+												messageAsString:@"You must specify database path"];
+		[self writeJavascript: [result toErrorCallbackString:callback]];		
 		return;
 	}
     
     NSValue *dbPointer = [openDBs objectForKey:dbPath];
 	if (dbPointer == NULL) {
-		[self respond:callback withString:@"{ message: 'No such database, you must open it first' }" withType:@"error"];
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsString:@"No such database, you must open it first"];
+		[self writeJavascript: [result toErrorCallbackString:callback]];
 		return;
 	}
     
 	sqlite3 *db = [dbPointer pointerValue];
 	
-    NSMutableArray *executes = [options objectForKey:@"executes"];
-	for (NSMutableDictionary *dict in executes) {
-		BOOL ret = [self executeSql:NULL withDict:dict];
+    NSMutableArray *executes = [arguments objectAtIndex:2];
+	for (NSMutableArray *dict in executes) {
+		
+		NSMutableDictionary *query = [NSMutableDictionary dictionaryWithCapacity:0];
+		[query setObject:@"true" forKey:@"batch"];
+		[query setObject:dict forKey:@"query"];
+		
+		BOOL ret = [self executeSql:arguments withDict:query];
         if (!ret){
             if ( sqlite3_get_autocommit(db) == 0){
                 sqlite3_exec(db, "ROLLBACK", NULL, NULL, NULL);
             }
-            [self respond:callback withString:[NSString stringWithFormat:@"{ message: 'SQL statement error : %s' }", sqlite3_errmsg(db)] withType:@"error"];
+			CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+														messageAsString:[NSString stringWithFormat: @"%s", sqlite3_errmsg(db)]];
+			[self writeJavascript: [result toErrorCallbackString:callback]];
             return;
         }
 	}
-    [self respond:callback withString:@"{ message: 'Success transaction' }" withType:@"success"];
+    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+											messageAsString:@"Success transaction"];
+	[self writeJavascript: [result toSuccessCallbackString:callback]];
 }
 
 -(BOOL) executeSql: (NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
-	NSString *callback = [options objectForKey:@"callback"];
-	NSString *dbPath = [self getDBPath:[options objectForKey:@"path"]];
+	NSString *callback = [arguments objectAtIndex:0];	
+	NSString *dbPath = [self getDBPath:[arguments objectAtIndex:1]];	
+	NSString *batch = [options objectForKey:@"batch"];
 	NSMutableArray *query_parts = [options objectForKey:@"query"];
 	NSString *query = [query_parts objectAtIndex:0];
 	
 	if (dbPath == NULL) {
-		[self respond:callback withString:@"{ message: 'You must specify database path' }" withType:@"error"];
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsString:@"You must specify database path"];
+		[self writeJavascript: [result toErrorCallbackString:callback]];		
 		return false;
 	}
 	if (query == NULL) {
-		[self respond:callback withString:@"{ message: 'You must specify a query to execute' }" withType:@"error"];
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsString:@"You must specify a query to execute"];
+		[self writeJavascript: [result toErrorCallbackString:callback]];		
 		return false;
 	}
 	
 	NSValue *dbPointer = [openDBs objectForKey:dbPath];
 	if (dbPointer == NULL) {
-		[self respond:callback withString:@"{ message: 'No such database, you must open it first' }" withType:@"error"];
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsString:@"No such database, you must open it first"];
+		[self writeJavascript: [result toErrorCallbackString:callback]];
 		return false;
 	}
 	sqlite3 *db = [dbPointer pointerValue];
@@ -314,7 +356,11 @@
 	sqlite3_finalize (statement);
 	
 	if (errMsg != NULL) {
-		[self respond:callback withString:[NSString stringWithFormat:@"{ message: 'SQL statement error : %s' }", errMsg] withType:@"error"];
+		if (batch != nil){
+			CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsString:[NSString stringWithFormat: @"SQL statement error :%s", errMsg]];
+			[self writeJavascript: [result toErrorCallbackString:callback]];
+		}		
         return false;
 	} else {
 		[resultSet setObject:resultRows forKey:@"rows"];
@@ -322,27 +368,40 @@
 		if (hasInsertId) {
 			[resultSet setObject:insertId forKey:@"insertId"];
 		}
-		[self respond:callback withString:[resultSet JSONString] withType:@"success"];
+		if (batch == NULL){
+			CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+												messageAsDictionary:resultSet];
+			[self writeJavascript: [result toSuccessCallbackString:callback]];
+		}
         return true;
 	}
 }
 
 -(void) close: (NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
-{
-	NSString *callback = [options objectForKey:@"callback"];
-	NSString *dbPath = [self getDBPath:[options objectForKey:@"path"]];
+{	
+	NSString *callback = [arguments objectAtIndex:0];	
+	NSString *dbPath = [self getDBPath:[arguments objectAtIndex:1]];
+	
 	if (dbPath == NULL) {
-		[self respond:callback withString:@"{ message: 'You must specify database path' }" withType:@"error"];
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsString:@"You must specify database path"];
+		[self writeJavascript: [result toErrorCallbackString:callback]];
 		return;
 	}
 	
 	NSValue *val = [openDBs objectForKey:dbPath];
 	sqlite3 *db = [val pointerValue];
 	if (db == NULL) {
-		[self respond:callback withString: @"{ message: 'Specified db was not open' }" withType:@"error"];
+		CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsString:@"Specified db was not open"];
+		[self writeJavascript: [result toErrorCallbackString:callback]];
+		return;
 	}
 	sqlite3_close (db);
-	[self respond:callback withString: @"{ message: 'db closed' }" withType:@"success"];
+	
+	CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+											messageAsString:@"db closed"];
+	[self writeJavascript: [result toSuccessCallbackString:callback]];
 }
 
 -(void)dealloc

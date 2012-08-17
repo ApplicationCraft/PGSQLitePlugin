@@ -3,7 +3,7 @@
     xmlns="http://www.phonegap.com/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android"
     id="com.applicationcraft.plugins.PGSQLitePlugin"
-    version="1.0.0">
+    version="2.0.0">
 
     <name>PGSQLite</name>
     
@@ -11,7 +11,7 @@
     
     <!-- android -->
     <platform name="android">
-        <config-file target="res/xml/plugins.xml" parent="/plugins">
+        <config-file target="res/xml/config.xml" parent="/plugins">
             <plugin name="PGSQLitePlugin"
                 value="com.applicationcraft.plugins.PGSQLitePlugin"/>
         </config-file>
